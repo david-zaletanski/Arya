@@ -5,15 +5,20 @@ using System.Text;
 
 using System.IO;
 using System.Reflection;
+using Arya.Command;
 
 namespace Arya.Modules
 {
-    public class ModuleManager
+    public class ModuleManager : ICommand
     {
         public List<IModule> Loaded { get; set; }
 
         public ModuleManager(string filepath)
         {
+            _Commands = new List<string>();
+            _Commands.Add("mm");
+            _Commands.Add("modulemanager");
+
             if (!Directory.Exists(filepath))
             {
                 Directory.CreateDirectory(filepath);
@@ -61,5 +66,28 @@ namespace Arya.Modules
         }
 
         #endregion
+
+        private List<string> _Commands;
+        public List<string> Commands
+        {
+            get { return _Commands; }
+        }
+
+        public void ExecuteCommand(string[] args)
+        {
+            // TODO: Handle commands.
+            if (args.Length >= 2)
+            {
+                switch (args[1].ToLower())
+                {
+                    case "lm":
+                        // TODO: List modules.
+                        break;
+                    case "rm":
+                        // TODO: Reload modules.
+                        break;
+                }
+            }
+        }
     }
 }

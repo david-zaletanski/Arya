@@ -6,17 +6,17 @@ using System.Collections.Specialized;
 
 using System.Xml.Serialization;
 using System.IO;
+using Arya.Command;
 
 namespace Arya
 {
-    class Settings
+    public class Settings : ICommand
     {
-
         private Dictionary<string,string> _Settings;
         /// <summary>
         /// How often the scheduler checks for jobs that need to be executed.
         /// </summary>
-        public int SchedulerInterval { get { return Convert.ToInt32(_Settings["SchedulerInterval"]); } set { _Settings["ShedulerInterval"] = value.ToString(); } }
+        public int SchedulerInterval { get { return Convert.ToInt32(_Settings["SchedulerInterval"]); } set { _Settings["SchedulerInterval"] = value.ToString(); } }
         /// <summary>
         /// Startup path of the application, populated before the CLI form launches.
         /// </summary>
@@ -28,6 +28,8 @@ namespace Arya
 
         public Settings(string StartupPath)
         {
+            _Commands = new List<string>();
+            _Commands.Add("settings");
             _Settings = new Dictionary<string,string>();
             LoadDefaultSettings(StartupPath);
         }
@@ -93,6 +95,38 @@ namespace Arya
             {
                 Core.Output("WARNING: Exception occured while saving settings from\n"+filename);
                 Core.HandleEx(ex);
+            }
+        }
+
+        private List<string> _Commands;
+        public List<string> Commands
+        {
+            get { return _Commands; }
+        }
+
+        public void ExecuteCommand(string[] args)
+        {
+            if (args.Length == 2)
+            {
+                switch (args[1].ToLower())
+                {
+                    case "print":
+                        PrintSettings();
+                        break;
+                }
+            }
+            else if (args.Length >= 3)
+            {
+                switch (args[1].ToLower())
+                {
+                    case "get":
+                        Core.Output("Setting '" + args[2] + "' = '" + GetCustomSetting(args[2]) + "'");
+                        break;
+                    case "set":
+                        AddCustomSetting(args[2], args[3]);
+                        Core.Output("Set setting '" + args[2] + "' = '" + args[3] + "'");
+                        break;
+                }
             }
         }
     }

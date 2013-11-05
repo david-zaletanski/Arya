@@ -7,8 +7,10 @@ namespace Arya.Modules
 {
     public interface IModule
     {
-        string Name { get; set; }
-        int Version { get; set; }
+        string Name { get; }
+        int Version { get; }
+
+        string CommandName { get; }
 
         void Execute(string[] args);
     }

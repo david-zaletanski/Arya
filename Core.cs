@@ -6,10 +6,11 @@ using System.Text;
 using Arya.Scheduler;
 using Arya.Modules;
 using Arya.Interface;
+using Arya.Command;
 
 namespace Arya
 {
-    class Core
+    public class Core
     {
         public static Settings _Settings;
         public static frmCLI _CLIForm;
@@ -61,25 +62,36 @@ namespace Arya
             // Give a hello message.
             Output("Arya online.");
             _Interpreter = new CommandInterpreter();
+            _Interpreter.AddCommand(_Settings);
             _ModuleManager = new ModuleManager(_Settings.ModulePath);
+            _Interpreter.AddCommand(_ModuleManager);
             _Scheduler = new TaskScheduler(_Settings.SchedulerInterval);
+            _Interpreter.AddCommand(_Scheduler);
+
+            // Don't want to handle keyboard input until everything else is intialized.
             _LLKeyboardHook.OnKeyDown += new LowLevelKeyboardHook.KeyPressEvent(_LLKeyboardHook_OnKeyDown);
+            _LLKeyboardHook.OnKeyUp += new LowLevelKeyboardHook.KeyPressEvent(_LLKeyboardHook_OnKeyUp);
         }
 
         public static void OnApplicationExit()
         {
             // Break all connections, save and exit.
             _CLIForm.OnExit();
-
         }
+
+        #endregion
+
+        #region Key Hook Events
 
         private static void _LLKeyboardHook_OnKeyDown(System.Windows.Forms.Keys key, bool syskey)
         {
-            // Handle system keypress events.
-            if(!syskey)
-                Core.Output("Keypress detected: " + key.ToString());
-            else
-                Core.Output("Keypress detected: ALT+" + key.ToString());
+            // TODO: Keep track of keys pressed in array.
+            // TOOD: Process hot keys.
+        }
+        private static void _LLKeyboardHook_OnKeyUp(System.Windows.Forms.Keys key, bool syskey)
+        {
+            // TODO: Keep track of keys pressed in array.
+            // TOOD: Process hot keys.
         }
 
         #endregion
