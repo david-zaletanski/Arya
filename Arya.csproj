@@ -46,6 +46,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CommandInterpreter.cs" />
     <Compile Include="Core.cs" />
     <Compile Include="frmCLI.cs">
       <SubType>Form</SubType>
@@ -53,6 +54,8 @@
     <Compile Include="frmCLI.Designer.cs">
       <DependentUpon>frmCLI.cs</DependentUpon>
     </Compile>
+    <Compile Include="Interface\LowLevelKeyboardHook.cs" />
+    <Compile Include="Modules\IModule.cs" />
     <Compile Include="Modules\Module.cs" />
     <Compile Include="Modules\ModuleManager.cs" />
     <Compile Include="Program.cs" />
@@ -83,7 +86,6 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Interface\" />
     <Folder Include="Networking\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

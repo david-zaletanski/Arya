@@ -5,14 +5,28 @@ using System.Text;
 
 using Arya.Scheduler;
 using Arya.Modules;
+using Arya.Interface;
 
 namespace Arya
 {
-    public class Core
+    class Core
     {
+        public static Settings _Settings;
         public static frmCLI _CLIForm;
         public static TaskScheduler _Scheduler;
         public static ModuleManager _ModuleManager;
+        public static CommandInterpreter _Interpreter;
+
+        private static LowLevelKeyboardHook _LLKeyboardHook;
+
+        #region Command Processing
+
+        public static void RunCommand(string command)
+        {
+            _Interpreter.InterpretCommand(command);
+        }
+
+        #endregion
 
         #region Output
 
@@ -34,13 +48,11 @@ namespace Arya
 
         #region Events
 
-        public static void OnApplicationLaunch()
+        public static void OnApplicationLaunch(string StartupPath)
         {
             // Load all components.
-            Settings.LoadDefaultSettings();
-
-            _ModuleManager = new ModuleManager();
-            _Scheduler = new TaskScheduler();
+            _Settings = new Settings(StartupPath);
+            _LLKeyboardHook = new LowLevelKeyboardHook();
             _CLIForm = new frmCLI();
         }
 
@@ -48,12 +60,26 @@ namespace Arya
         {
             // Give a hello message.
             Output("Arya online.");
+            _Interpreter = new CommandInterpreter();
+            _ModuleManager = new ModuleManager(_Settings.ModulePath);
+            _Scheduler = new TaskScheduler(_Settings.SchedulerInterval);
+            _LLKeyboardHook.OnKeyPress += new LowLevelKeyboardHook.KeyPressEvent(_LLKeyboardHook_OnKeyPress);
         }
 
         public static void OnApplicationExit()
         {
             // Break all connections, save and exit.
             _CLIForm.OnExit();
+
+        }
+
+        private static void _LLKeyboardHook_OnKeyPress(System.Windows.Forms.Keys key, System.Windows.Forms.Keys lastKey, bool syskey)
+        {
+            // Handle system keypress events.
+            if(!syskey)
+                Core.Output("Keypress detected: " + key.ToString());
+            else
+                Core.Output("Keypress detected: ALT+" + key.ToString());
         }
 
         #endregion

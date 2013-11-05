@@ -11,10 +11,10 @@ namespace Arya.Scheduler
     {
         private Timer _Timer;
 
-        public TaskScheduler()
+        public TaskScheduler(int interval)
         {
             _Timer = new Timer();
-            _Timer.Interval = Settings.SchedulerInterval;
+            _Timer.Interval = interval;
             _Timer.Tick += new EventHandler(_Timer_Tick);
             //_Timer.Start();
         }

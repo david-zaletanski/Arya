@@ -14,7 +14,6 @@ namespace Arya
         #region Constructor / Destructor
         public frmCLI()
         {
-            Settings.StartupPath = Application.StartupPath;
             InitializeComponent();
         }
         private void frmMain_Load(object sender, EventArgs e)
@@ -60,6 +59,7 @@ namespace Arya
                 string s = inputBox.Text;
                 inputBox.Text = "";
                 ProcessInput(s);
+                e.SuppressKeyPress = true;
                 e.Handled = true;
             }
         }
@@ -68,6 +68,7 @@ namespace Arya
         public void ProcessInput(string str)
         {
             Output(str);
+            Core.RunCommand(str);
         }
     }
 }

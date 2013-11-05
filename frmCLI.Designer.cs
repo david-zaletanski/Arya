@@ -57,7 +57,7 @@
             this.outputBox.TabIndex = 0;
             this.outputBox.Text = "";
             // 
-            // frmMain
+            // frmCLI
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
@@ -69,7 +69,7 @@
             this.ForeColor = System.Drawing.SystemColors.ControlText;
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedToolWindow;
             this.Margin = new System.Windows.Forms.Padding(2, 3, 2, 3);
-            this.Name = "frmMain";
+            this.Name = "frmCLI";
             this.Text = "Arya Terminal";
             this.Load += new System.EventHandler(this.frmMain_Load);
             this.ResumeLayout(false);

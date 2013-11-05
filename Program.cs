@@ -15,7 +15,7 @@ namespace Arya
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Core.OnApplicationLaunch();
+            Core.OnApplicationLaunch(Application.StartupPath);
             Application.ApplicationExit += new EventHandler(Application_ApplicationExit);
             Application.Run(Core._CLIForm);
         }
