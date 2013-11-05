@@ -63,7 +63,7 @@ namespace Arya
             _Interpreter = new CommandInterpreter();
             _ModuleManager = new ModuleManager(_Settings.ModulePath);
             _Scheduler = new TaskScheduler(_Settings.SchedulerInterval);
-            _LLKeyboardHook.OnKeyPress += new LowLevelKeyboardHook.KeyPressEvent(_LLKeyboardHook_OnKeyPress);
+            _LLKeyboardHook.OnKeyDown += new LowLevelKeyboardHook.KeyPressEvent(_LLKeyboardHook_OnKeyDown);
         }
 
         public static void OnApplicationExit()
@@ -73,7 +73,7 @@ namespace Arya
 
         }
 
-        private static void _LLKeyboardHook_OnKeyPress(System.Windows.Forms.Keys key, System.Windows.Forms.Keys lastKey, bool syskey)
+        private static void _LLKeyboardHook_OnKeyDown(System.Windows.Forms.Keys key, bool syskey)
         {
             // Handle system keypress events.
             if(!syskey)
