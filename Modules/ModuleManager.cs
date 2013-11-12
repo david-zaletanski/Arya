@@ -9,82 +9,120 @@ using Arya.Command;
 
 namespace Arya.Modules
 {
-    public class ModuleManager : ICommand
+    public class ModuleManager
     {
-        public List<IModule> Loaded { get; set; }
+        public List<IModule> LoadedModules { get; set; }
 
         public ModuleManager(string filepath)
         {
-            _Commands = new List<string>();
-            _Commands.Add("mm");
-            _Commands.Add("modulemanager");
-
             if (!Directory.Exists(filepath))
             {
                 Directory.CreateDirectory(filepath);
-                Core.Output("Creating Module directory.");
-                //Core.Output("ModuleManager: Directory does not exist\n"+filepath+);
+                Core.Output("Creating Module directory:\n"+filepath);
                 return;
             }
 
-            Loaded = LoadModules(filepath);
+            Reload(filepath);
         }
 
         public void Reload(string filepath)
         {
             // TODO: Unload old modules from memory.
-            Loaded = LoadModules(filepath);
+            LoadedModules = LoadModules(filepath);
         }
 
         #region Load Modules
 
         private List<IModule> LoadModules(string filepath)
         {
+            UnloadModules();
             List<IModule> Modules = new List<IModule>();
             foreach (string file in Directory.GetFiles(filepath))
                 Modules.AddRange(LoadModulesFrom(file));
             return Modules;
         }
 
-        const string ModuleInterfaceName = "Arya.IModule";
+        const string ModuleInterfaceName = "Arya.Modules.IModule";
         private List<IModule> LoadModulesFrom(string dllLocation)
         {
-            // Note: To allow unloading of module after execution, need to create a new AppDomain.
-            if (!File.Exists(dllLocation))
-                return null;
+            List<IModule> rval = new List<IModule>();
 
-            List<IModule> Modules = new List<IModule>();
-            Assembly ASM = Assembly.LoadFrom(dllLocation);
-            foreach (Type T in ASM.GetExportedTypes())
+            // Note: To allow unloading of module after execution, need to create a new AppDomain.
+            FileInfo fInfo = new FileInfo(dllLocation);
+            if (!fInfo.Exists || fInfo.Extension.ToLower() != ".dll")
+                return rval;
+
+            try
             {
-                Type Interface = T.GetInterface(ModuleInterfaceName);
-                if (Interface != null && (T.Attributes & TypeAttributes.Abstract) != TypeAttributes.Abstract)
-                    Modules.Add((IModule)Activator.CreateInstance(T));
+                List<IModule> Modules = new List<IModule>();
+                Assembly ASM = Assembly.LoadFrom(dllLocation);
+                foreach (Type T in ASM.GetExportedTypes())
+                {
+                    Type Interface = T.GetInterface(ModuleInterfaceName);
+                    if (Interface != null && (T.Attributes & TypeAttributes.Abstract) != TypeAttributes.Abstract)
+                    {
+                        IModule module = (IModule)Activator.CreateInstance(T);
+                        module.RegisterCommands(Core._Interpreter);
+                        rval.Add(module);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Core.HandleEx(ex);
             }
 
-            return Modules;
+            return rval;
+        }
+
+        public void UnloadModules()
+        {
+            if (LoadedModules == null)
+                return;
+
+            foreach (IModule module in LoadedModules)
+                module.UnregisterCommands(Core._Interpreter);
+
+            // TODO: Remove module from memory.
+            LoadedModules.Clear();
         }
 
         #endregion
 
-        private List<string> _Commands;
-        public List<string> Commands
+        public void PrintModules()
         {
-            get { return _Commands; }
+            Core.Output("ModuleManager-Loaded modules:");
+            foreach (IModule module in LoadedModules)
+                Core.Output(module.Name);
         }
 
-        public void ExecuteCommand(string[] args)
+        private string[] Commands { get { return new string[] { "mm", "modulemanager" }; } }
+        public void RegisterCommands(CommandInterpreter Interpreter)
         {
-            // TODO: Handle commands.
+            CommandInterpreter.ExecuteDelegate del = new CommandInterpreter.ExecuteDelegate(Execute);
+            foreach (string s in Commands)
+                Interpreter.AddCommand(s, del);
+        }
+        public void Execute(string[] args)
+        {
+            if (args.Length == 1)
+            {
+                Core.Output("ModuleManager Commands\n");
+                Core.Output("lm    List Modules");
+                Core.Output("rm    Reload Modules");
+            }
             if (args.Length >= 2)
             {
                 switch (args[1].ToLower())
                 {
                     case "lm":
-                        // TODO: List modules.
+                        PrintModules(); // Print loaded modules.
                         break;
                     case "rm":
-                        // TODO: Reload modules.
+                        if (args.Length == 3)
+                            Reload(args[2]); // Custom path.
+                        else
+                            Reload(Core._Settings.ModulePath); // Default path.
                         break;
                 }
             }

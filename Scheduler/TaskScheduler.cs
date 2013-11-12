@@ -8,15 +8,12 @@ using Arya.Command;
 
 namespace Arya.Scheduler
 {
-    public class TaskScheduler : ICommand
+    public class TaskScheduler
     {
         private Timer _Timer;
 
         public TaskScheduler(int interval)
         {
-            _Commands = new List<string>();
-            _Commands.Add("ts");
-            _Commands.Add("taskscheduler");
             _Timer = new Timer();
             _Timer.Interval = interval;
             _Timer.Tick += new EventHandler(_Timer_Tick);
@@ -29,16 +26,16 @@ namespace Arya.Scheduler
         }
 
 
-        private List<string> _Commands;
-        public List<string> Commands
+        private string[] Commands { get { return new string[] { "ts", "taskscheduler" }; } }
+        public void RegisterCommands(CommandInterpreter Interpreter)
         {
-            get { return _Commands; }
+            CommandInterpreter.ExecuteDelegate del = new CommandInterpreter.ExecuteDelegate(Execute);
+            foreach (string cmd in Commands)
+                Interpreter.AddCommand(cmd, del);
         }
-
-        public void ExecuteCommand(string[] args)
+        public void Execute(string[] args)
         {
             // TODO: Handle commands.
-
         }
     }
 }

@@ -41,6 +41,8 @@ namespace Arya
         }
         public void Output(string str, Color c)
         {
+            if (outputBox.IsDisposed || outputBox.Disposing)
+                return;
             string TimeStamp = DateTime.Now.ToString("M-d-y H:m:s:fff");
             outputBox.AppendText(TimeStamp+" "+str+"\n");
             outputBox.Select(outputBox.Text.Length - str.Length - 1, str.Length);

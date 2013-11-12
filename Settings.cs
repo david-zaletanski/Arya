@@ -4,15 +4,15 @@ using System.Linq;
 using System.Text;
 using System.Collections.Specialized;
 
+using Microsoft.Win32;
 using System.Xml.Serialization;
 using System.IO;
 using Arya.Command;
 
 namespace Arya
 {
-    public class Settings : ICommand
+    public class Settings
     {
-        private Dictionary<string,string> _Settings;
         /// <summary>
         /// How often the scheduler checks for jobs that need to be executed.
         /// </summary>
@@ -26,15 +26,16 @@ namespace Arya
         /// </summary>
         public string ModulePath { get { return _Settings["ModulePath"]; } set { _Settings["ModulePath"] = value; } }
 
+        #region Settings Object
+        private SerializableDictionary<string, string> _Settings;
+
         public Settings(string StartupPath)
         {
-            _Commands = new List<string>();
-            _Commands.Add("settings");
-            _Settings = new Dictionary<string,string>();
+            _Settings = new SerializableDictionary<string,string>();
             LoadDefaultSettings(StartupPath);
         }
 
-        public void AddCustomSetting(string Name, string Value)
+        public void SetCustomSetting(string Name, string Value)
         {
             _Settings.Add(Name, Value);
         }
@@ -59,6 +60,16 @@ namespace Arya
             return value;
         }
 
+        public bool DoesSettingExist(string Name)
+        {
+            return _Settings.ContainsKey(Name);
+        }
+
+        public void RemoveCustomSetting(string Name)
+        {
+            _Settings.Remove(Name);
+        }
+
         public void LoadDefaultSettings(string startupPath)
         {
             SchedulerInterval = 1000;
@@ -66,13 +77,51 @@ namespace Arya
             ModulePath = StartupPath + "\\Modules\\";
         }
 
-        public void LoadSettings(string filename)
+        #endregion
+
+        #region Windows Startup
+        public void AddWindowsStartupKey()
         {
             try
             {
-                XmlSerializer reader = new XmlSerializer(typeof(Dictionary<string, string>));
+                RegistryKey startupKey = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", true);
+                startupKey.SetValue("Arya", "\"" + StartupPath + "\\Arya.exe\"");
+            }
+            catch (Exception ex)
+            {
+                Core.HandleEx(ex);
+            }
+        }
+        public void RemoveWindowsStartupKey()
+        {
+            try
+            {
+                RegistryKey startupKey = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", true);
+                startupKey.DeleteValue("Arya");
+            }
+            catch (Exception ex)
+            {
+                Core.HandleEx(ex);
+            }
+        }
+
+        #endregion
+
+        #region Save/Load Settings File
+
+        public void LoadSettings(string filename)
+        {
+            FileInfo settingsFile = new FileInfo(filename);
+            if (!settingsFile.Exists)
+            {
+                Core.Output("Settings file '" + filename + "' does not exist.");
+                return;
+            }
+            try
+            {
+                XmlSerializer reader = new XmlSerializer(typeof(SerializableDictionary<string, string>));
                 StreamReader file = new StreamReader(filename);
-                _Settings = (Dictionary<string,string>)reader.Deserialize(file);
+                _Settings = (SerializableDictionary<string,string>)reader.Deserialize(file);
                 file.Close();
             }
             catch (Exception ex)
@@ -86,7 +135,7 @@ namespace Arya
         {
             try
             {
-                XmlSerializer writer = new XmlSerializer(typeof(Dictionary<string,string>));
+                XmlSerializer writer = new XmlSerializer(typeof(SerializableDictionary<string,string>));
                 StreamWriter file = new StreamWriter(filename, false);
                 writer.Serialize(file, _Settings);
                 file.Close();
@@ -98,20 +147,41 @@ namespace Arya
             }
         }
 
-        private List<string> _Commands;
-        public List<string> Commands
-        {
-            get { return _Commands; }
-        }
+        #endregion
 
-        public void ExecuteCommand(string[] args)
+        #region Commands
+
+        private string[] Commands { get { return new string[] { "settings" }; } }
+        public void RegisterCommands(CommandInterpreter Interpreter)
         {
+            CommandInterpreter.ExecuteDelegate del = new CommandInterpreter.ExecuteDelegate(Execute);
+            foreach (string s in Commands)
+                Interpreter.AddCommand(s, del);
+        }
+        public void Execute(string[] args)
+        {
+            if (args.Length == 1)
+            {
+                Core.Output("Settings Commands\n");
+                Core.Output("print    Prints out all settings.");
+                Core.Output("get <name>    Returns the value of <name>.");
+                Core.Output("set <name> <value>    Sets the value of <name> to <value>.");
+                Core.Output("unset <name>    Removes the setting <name>.");
+                Core.Output("addstartupkey    Adds an application start up key to the Windows registry (Arya will start when Windows starts).");
+                Core.Output("removestartupkey    Removes an application start up key from the Windows registery (Arya will not start when Windows starts).");
+            }
             if (args.Length == 2)
             {
                 switch (args[1].ToLower())
                 {
                     case "print":
                         PrintSettings();
+                        break;
+                    case "addstartupkey":
+                        AddWindowsStartupKey();
+                        break;
+                    case "removestartupkey":
+                        RemoveWindowsStartupKey();
                         break;
                 }
             }
@@ -123,11 +193,17 @@ namespace Arya
                         Core.Output("Setting '" + args[2] + "' = '" + GetCustomSetting(args[2]) + "'");
                         break;
                     case "set":
-                        AddCustomSetting(args[2], args[3]);
+                        SetCustomSetting(args[2], args[3]);
                         Core.Output("Set setting '" + args[2] + "' = '" + args[3] + "'");
+                        break;
+                    case "unset":
+                        RemoveCustomSetting(args[2]);
+                        Core.Output("Removed setting '" + args[2] + "'");
                         break;
                 }
             }
         }
+
+        #endregion
     }
 }

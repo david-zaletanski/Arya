@@ -33,6 +33,9 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
+  <PropertyGroup>
+    <StartupObject>Arya.Program</StartupObject>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -63,6 +66,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Scheduler\TaskScheduler.cs" />
     <Compile Include="Scheduler\Task.cs" />
+    <Compile Include="SerializableDictionary.cs" />
     <Compile Include="Settings.cs" />
     <EmbeddedResource Include="frmCLI.resx">
       <DependentUpon>frmCLI.cs</DependentUpon>

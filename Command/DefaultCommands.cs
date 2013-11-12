@@ -5,28 +5,32 @@ using System.Text;
 
 namespace Arya.Command
 {
-    class DefaultCommands : ICommand
+    class DefaultCommands
     {
-        private List<string> commands;
-        public List<string> Commands
+        private string[] Commands { get { return new string[] { "?", "help", "cmds", "commands", "exit" }; } }
+        public void RegisterCommands(CommandInterpreter Interpreter)
         {
-            get { return commands; }
+            CommandInterpreter.ExecuteDelegate del = new CommandInterpreter.ExecuteDelegate(Execute);
+            foreach (string cmd in Commands)
+                Interpreter.AddCommand(cmd, del);
         }
 
-        public DefaultCommands()
-        {
-            commands = new List<string>();
-            commands.Add("?");
-            commands.Add("help");
-            commands.Add("cmds");
-            commands.Add("commands");
-        }
-
-        public void ExecuteCommand(string[] args)
+        public void Execute(string[] args)
         {
             if (args.Length == 1)
-                Core.Output(getUsage());
+            {
+                switch (args[0].ToLower())
+                {
+                    case "exit":
+                        System.Windows.Forms.Application.Exit();
+                        break;
+                    default:
+                        Core.Output(getUsage());
+                        break;
+                }
+            }
             else if (args.Length >= 2)
+            {
                 switch (args[1].ToLower())
                 {
                     case "mm":
@@ -39,6 +43,7 @@ namespace Arya.Command
                         outputSettings();
                         break;
                 }
+            }
         }
 
         private void outputMM()

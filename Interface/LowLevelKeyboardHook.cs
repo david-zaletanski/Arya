@@ -68,51 +68,59 @@ namespace Arya.Interface
                 {
                     int vkCode = Marshal.ReadInt32(lParam);
                     Keys key = (Keys)vkCode;
+                    Keys sentkey = key;
                     if (key == Keys.LControlKey ||
                         key == Keys.RControlKey)
                     {
-                        key = key | Keys.Control;
+                        //key = key | Keys.Control;
+                        sentkey = Keys.Control;
                     }
 
                     if (key == Keys.LShiftKey ||
                         key == Keys.RShiftKey)
                     {
-                        key = key | Keys.Shift;
+                        //key = key | Keys.Shift;
+                        sentkey = Keys.Shift;
                     }
 
                     if (key == Keys.LMenu ||
                         key == Keys.RMenu)
                     {
-                        key = key | Keys.Alt;
+                        //key = key | Keys.Alt;
+                        sentkey = Keys.Alt;
                     }
 
                     if (OnKeyDown != null)
-                        OnKeyDown(key, wParam == (IntPtr)WM_SYSKEYDOWN);
+                        OnKeyDown(sentkey, wParam == (IntPtr)WM_SYSKEYDOWN);
                 }
                 else if (wParam == (IntPtr)WM_KEYUP || wParam == (IntPtr)WM_SYSKEYUP)
                 {
                     int vkCode = Marshal.ReadInt32(lParam);
                     Keys key = (Keys)vkCode;
+                    Keys sentkey = key;
                     if (key == Keys.LControlKey ||
                         key == Keys.RControlKey)
                     {
-                        key = key | Keys.Control;
+                        //key = key | Keys.Control;
+                        sentkey = Keys.Control;
                     }
 
                     if (key == Keys.LShiftKey ||
                         key == Keys.RShiftKey)
                     {
-                        key = key | Keys.Shift;
+                        //key = key | Keys.Shift;
+                        sentkey = Keys.Shift;
                     }
 
                     if (key == Keys.LMenu ||
                         key == Keys.RMenu)
                     {
-                        key = key | Keys.Alt;
+                        //key = key | Keys.Alt;
+                        sentkey = Keys.Alt;
                     }
 
                     if (OnKeyUp != null)
-                        OnKeyUp(key, wParam == (IntPtr)WM_SYSKEYUP);
+                        OnKeyUp(sentkey, wParam == (IntPtr)WM_SYSKEYUP);
                 }
             }
             return CallNextHookEx(_Hook, nCode, wParam, lParam);

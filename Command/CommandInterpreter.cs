@@ -7,17 +7,38 @@ namespace Arya.Command
 {
     public class CommandInterpreter
     {
-        private List<ICommand> _Commands;
+        private List<string> Commands;
+        private List<ExecuteDelegate> Methods;
+        private DefaultCommands DefaultCommands;
+        public delegate void ExecuteDelegate(string[] Args);
 
         public CommandInterpreter()
         {
-            _Commands = new List<ICommand>();
-            AddCommand(new DefaultCommands());
+            Commands = new List<string>();
+            Methods = new List<ExecuteDelegate>();
+            DefaultCommands = new DefaultCommands();
+            DefaultCommands.RegisterCommands(this);
         }
 
-        public void AddCommand(ICommand command)
+        public bool AddCommand(string command, ExecuteDelegate del)
         {
-            _Commands.Add(command);
+            if (Commands.Contains(command))
+            {
+                Core.Output("CommandInterpreter - Command " + command + " already registered.");
+                return false;
+            }
+            Commands.Add(command);
+            Methods.Add(del);
+            return true;
+        }
+        public bool RemoveCommand(string command)
+        {
+            int i = Commands.IndexOf(command);
+            if (i < 0)
+                return false;
+            Commands.RemoveAt(i);
+            Methods.RemoveAt(i);
+            return true;
         }
 
         public bool InterpretCommand(string Command)
@@ -26,28 +47,21 @@ namespace Arya.Command
             if (Arguments.Length == 0)
                 return false;
 
-            foreach (ICommand cmd in _Commands)
-            {
-                if (cmd.Commands.Contains(Arguments[0].ToLower()))
+            bool found = false;
+            for(int i = 0; i < Commands.Count; i++)
+                if (Commands[i].Equals(Arguments[0].ToLower()))
                 {
-                    cmd.ExecuteCommand(Arguments);
+                    found = true;
+                    Methods[i].Invoke(Arguments); // TODO: Make asynchronus?
                 }
-            }
 
-            return true;
+            return found;
         }
 
         private string[] ParseCommand(string command)
         {
             // Do not split if inside "s
-            return command.Split(' ');
+            return command.Split(new char[] {' '}, StringSplitOptions.RemoveEmptyEntries);
         }
-    }
-
-    public interface ICommand
-    {
-        List<string> Commands { get; }
-
-        void ExecuteCommand(string[] args);
     }
 }
