@@ -37,7 +37,10 @@ namespace Arya
 
         public void SetCustomSetting(string Name, string Value)
         {
-            _Settings.Add(Name, Value);
+            if(_Settings.ContainsKey(Name))
+                _Settings[Name] = Value;
+            else
+                _Settings.Add(Name, Value);
         }
 
         public void PrintSettings()
@@ -151,16 +154,9 @@ namespace Arya
 
         #region Commands
 
-        private string[] Commands { get { return new string[] { "settings" }; } }
-        public void RegisterCommands(CommandInterpreter Interpreter)
-        {
-            CommandInterpreter.ExecuteDelegate del = new CommandInterpreter.ExecuteDelegate(Execute);
-            foreach (string s in Commands)
-                Interpreter.AddCommand(s, del);
-        }
         public void Execute(string[] args)
         {
-            if (args.Length == 1)
+            if (args.Length == 0)
             {
                 Core.Output("Settings Commands\n");
                 Core.Output("print    Prints out all settings.");
@@ -170,9 +166,9 @@ namespace Arya
                 Core.Output("addstartupkey    Adds an application start up key to the Windows registry (Arya will start when Windows starts).");
                 Core.Output("removestartupkey    Removes an application start up key from the Windows registery (Arya will not start when Windows starts).");
             }
-            if (args.Length == 2)
+            if (args.Length == 1)
             {
-                switch (args[1].ToLower())
+                switch (args[0].ToLower())
                 {
                     case "print":
                         PrintSettings();
@@ -185,20 +181,27 @@ namespace Arya
                         break;
                 }
             }
-            else if (args.Length >= 3)
+            else if (args.Length >= 2)
             {
-                switch (args[1].ToLower())
+                switch (args[0].ToLower())
                 {
                     case "get":
-                        Core.Output("Setting '" + args[2] + "' = '" + GetCustomSetting(args[2]) + "'");
+                        Core.Output("Setting '" + args[1] + "' = '" + GetCustomSetting(args[1]) + "'");
                         break;
                     case "set":
-                        SetCustomSetting(args[2], args[3]);
-                        Core.Output("Set setting '" + args[2] + "' = '" + args[3] + "'");
+                        if (args.Length != 3)
+                        {
+                            Core.Output("Usage: settings set <name> <value>");
+                        }
+                        else
+                        {
+                            SetCustomSetting(args[1], args[2]);
+                            Core.Output("Set setting '" + args[1] + "' = '" + args[2] + "'");
+                        }
                         break;
                     case "unset":
-                        RemoveCustomSetting(args[2]);
-                        Core.Output("Removed setting '" + args[2] + "'");
+                        RemoveCustomSetting(args[1]);
+                        Core.Output("Removed setting '" + args[1] + "'");
                         break;
                 }
             }

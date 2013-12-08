@@ -37,6 +37,18 @@
     <StartupObject>Arya.Program</StartupObject>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="ALLCModule">
+      <HintPath>bin\Debug\Modules\ALLCModule.dll</HintPath>
+    </Reference>
+    <Reference Include="Interop.SHDocVw">
+      <HintPath>bin\Debug\Libraries\Interop.SHDocVw.dll</HintPath>
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+    </Reference>
+    <Reference Include="Microsoft.mshtml, Version=7.0.3300.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+      <SpecificVersion>False</SpecificVersion>
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+      <HintPath>bin\Debug\Libraries\Microsoft.mshtml.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -47,10 +59,12 @@
     <Reference Include="System.Drawing" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
+    <Reference Include="WatiN.Core">
+      <HintPath>bin\Debug\Libraries\WatiN.Core.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Command\CommandInterpreter.cs" />
-    <Compile Include="Command\DefaultCommands.cs" />
     <Compile Include="Core.cs" />
     <Compile Include="frmCLI.cs">
       <SubType>Form</SubType>
@@ -60,14 +74,18 @@
     </Compile>
     <Compile Include="Interface\LowLevelKeyboardHook.cs" />
     <Compile Include="Modules\IModule.cs" />
-    <Compile Include="Modules\Module.cs" />
     <Compile Include="Modules\ModuleManager.cs" />
+    <Compile Include="Modules\StaticDllManager.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Scheduler\TaskScheduler.cs" />
     <Compile Include="Scheduler\Task.cs" />
     <Compile Include="SerializableDictionary.cs" />
     <Compile Include="Settings.cs" />
+    <Compile Include="Storage\CommaDelimitedDataFile.cs" />
+    <Compile Include="Storage\StringDataFile.cs" />
+    <Compile Include="Threading\PulseThread.cs" />
+    <Compile Include="Threading\PulseThreadManager.cs" />
     <EmbeddedResource Include="frmCLI.resx">
       <DependentUpon>frmCLI.cs</DependentUpon>
     </EmbeddedResource>

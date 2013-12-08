@@ -9,10 +9,9 @@ namespace Arya.Modules
 {
     public interface IModule
     {
-        string Name { get; }
-        int Version { get; }
-        void RegisterCommands(CommandInterpreter Interpreter);
-        void UnregisterCommands(CommandInterpreter Interpreter);
+        string Command { get; }
+        void OnLoad();
         void Execute(string[] args);
+        void OnExit();
     }
 }

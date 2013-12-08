@@ -11,121 +11,88 @@ namespace Arya.Modules
 {
     public class ModuleManager
     {
-        public List<IModule> LoadedModules { get; set; }
-
-        public ModuleManager(string filepath)
-        {
-            if (!Directory.Exists(filepath))
-            {
-                Directory.CreateDirectory(filepath);
-                Core.Output("Creating Module directory:\n"+filepath);
-                return;
-            }
-
-            Reload(filepath);
-        }
-
-        public void Reload(string filepath)
-        {
-            // TODO: Unload old modules from memory.
-            LoadedModules = LoadModules(filepath);
-        }
-
-        #region Load Modules
-
-        private List<IModule> LoadModules(string filepath)
-        {
-            UnloadModules();
-            List<IModule> Modules = new List<IModule>();
-            foreach (string file in Directory.GetFiles(filepath))
-                Modules.AddRange(LoadModulesFrom(file));
-            return Modules;
-        }
-
         const string ModuleInterfaceName = "Arya.Modules.IModule";
-        private List<IModule> LoadModulesFrom(string dllLocation)
+
+        /// <summary>
+        /// When modules are loaded their command is placed as a key in this dictionary, and the
+        /// full path to the .DLL file is the value. This is to assist with loaded module identification.
+        /// </summary>
+        public static Dictionary<string, string> CommandRegistry = new Dictionary<string, string>();
+
+        /// <summary>
+        /// Loads an IModule from a .DLL file.
+        /// </summary>
+        /// <param name="dllName">full path to the .DLL file</param>
+        /// <returns>IModule if loaded successfully, null if not</returns>
+        public static IModule LoadModule(string dllName)
         {
-            List<IModule> rval = new List<IModule>();
+            IModule result = (IModule)StaticDllManager.Load(dllName, ModuleInterfaceName);
 
-            // Note: To allow unloading of module after execution, need to create a new AppDomain.
-            FileInfo fInfo = new FileInfo(dllLocation);
-            if (!fInfo.Exists || fInfo.Extension.ToLower() != ".dll")
-                return rval;
-
-            try
-            {
-                List<IModule> Modules = new List<IModule>();
-                Assembly ASM = Assembly.LoadFrom(dllLocation);
-                foreach (Type T in ASM.GetExportedTypes())
+            // Registers the modules command with its .DLL file path.
+            if(result!=null) {
+                if (CommandRegistry.ContainsKey(result.Command))
                 {
-                    Type Interface = T.GetInterface(ModuleInterfaceName);
-                    if (Interface != null && (T.Attributes & TypeAttributes.Abstract) != TypeAttributes.Abstract)
-                    {
-                        IModule module = (IModule)Activator.CreateInstance(T);
-                        module.RegisterCommands(Core._Interpreter);
-                        rval.Add(module);
-                    }
+                    Core.HandleEx(new Exception("LoadModule could not load '" + dllName + "' because a module with the command '" + result.Command + "' has already been loaded."));
+                }
+                else
+                {
+                    CommandRegistry.Add(result.Command, dllName);
                 }
             }
-            catch (Exception ex)
+            return result;
+        }
+
+        /// <summary>
+        /// Attempts to load all of the .DLL files in the given directory as IModules.
+        /// </summary>
+        /// <param name="directory">directory to search for .DLL files</param>
+        /// <param name="recursive">true to check subfolders, false to not</param>
+        /// <returns>a list of loaded IModules</returns>
+        public static List<IModule> LoadModules(string directory, bool recursive)
+        {
+            if(!Directory.Exists(directory))
+                return new List<IModule>();
+
+            List<IModule> modules = new List<IModule>();
+            foreach (string file in Directory.GetFiles(directory))
             {
-                Core.HandleEx(ex);
-            }
-
-            return rval;
-        }
-
-        public void UnloadModules()
-        {
-            if (LoadedModules == null)
-                return;
-
-            foreach (IModule module in LoadedModules)
-                module.UnregisterCommands(Core._Interpreter);
-
-            // TODO: Remove module from memory.
-            LoadedModules.Clear();
-        }
-
-        #endregion
-
-        public void PrintModules()
-        {
-            Core.Output("ModuleManager-Loaded modules:");
-            foreach (IModule module in LoadedModules)
-                Core.Output(module.Name);
-        }
-
-        private string[] Commands { get { return new string[] { "mm", "modulemanager" }; } }
-        public void RegisterCommands(CommandInterpreter Interpreter)
-        {
-            CommandInterpreter.ExecuteDelegate del = new CommandInterpreter.ExecuteDelegate(Execute);
-            foreach (string s in Commands)
-                Interpreter.AddCommand(s, del);
-        }
-        public void Execute(string[] args)
-        {
-            if (args.Length == 1)
-            {
-                Core.Output("ModuleManager Commands\n");
-                Core.Output("lm    List Modules");
-                Core.Output("rm    Reload Modules");
-            }
-            if (args.Length >= 2)
-            {
-                switch (args[1].ToLower())
+                FileInfo finfo = new FileInfo(file);
+                if (finfo.Extension.ToUpper() == ".DLL")
                 {
-                    case "lm":
-                        PrintModules(); // Print loaded modules.
-                        break;
-                    case "rm":
-                        if (args.Length == 3)
-                            Reload(args[2]); // Custom path.
-                        else
-                            Reload(Core._Settings.ModulePath); // Default path.
-                        break;
+                    IModule m = LoadModule(finfo.FullName);
+                    if (m != null)
+                        modules.Add(m);
+                    else
+                        Core.Output("Error loading module '" + finfo.FullName + "'");
                 }
             }
+
+            if (recursive)
+            {
+                foreach (string subdirectory in Directory.GetDirectories(directory))
+                    modules.AddRange(LoadModules(subdirectory, true));
+            }
+
+            return modules;
+        }
+
+        /// <summary>
+        /// Searches for a loaded instance of the module with the given the full path of .DLL
+        /// </summary>
+        /// <param name="dllName">full path of dll file</param>
+        /// <returns>the found instance or null if not found</returns>
+        public static IModule GetExistingModule(string dllName)
+        {
+            return (IModule)StaticDllManager.GetExistingInstance(dllName, ModuleInterfaceName);
+        }
+
+        /// <summary>
+        /// Unloads all modules from address space and clears the command registry.
+        /// </summary>
+        public static void UnloadModules()
+        {
+            StaticDllManager.Unload();
+            CommandRegistry.Clear();
         }
     }
 }

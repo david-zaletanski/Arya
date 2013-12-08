@@ -17,7 +17,7 @@ namespace Arya
             Application.SetCompatibleTextRenderingDefault(false);
             Core.OnApplicationLaunch(Application.StartupPath);
             Application.ApplicationExit += new EventHandler(Application_ApplicationExit);
-            Application.Run(Core._CLIForm);
+            Application.Run(Core.Interface);
         }
 
         static void Application_ApplicationExit(object sender, EventArgs e)

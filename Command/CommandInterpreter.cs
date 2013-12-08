@@ -7,61 +7,55 @@ namespace Arya.Command
 {
     public class CommandInterpreter
     {
-        private List<string> Commands;
-        private List<ExecuteDelegate> Methods;
-        private DefaultCommands DefaultCommands;
-        public delegate void ExecuteDelegate(string[] Args);
-
-        public CommandInterpreter()
+        public static string[] ParseCommand(string command)
         {
-            Commands = new List<string>();
-            Methods = new List<ExecuteDelegate>();
-            DefaultCommands = new DefaultCommands();
-            DefaultCommands.RegisterCommands(this);
-        }
+            command = command.Trim();
 
-        public bool AddCommand(string command, ExecuteDelegate del)
-        {
-            if (Commands.Contains(command))
+            List<string> args = new List<string>();
+            int i = 0;
+            string current = "";
+            bool inquote = false;
+            while (i < command.Length)
             {
-                Core.Output("CommandInterpreter - Command " + command + " already registered.");
-                return false;
-            }
-            Commands.Add(command);
-            Methods.Add(del);
-            return true;
-        }
-        public bool RemoveCommand(string command)
-        {
-            int i = Commands.IndexOf(command);
-            if (i < 0)
-                return false;
-            Commands.RemoveAt(i);
-            Methods.RemoveAt(i);
-            return true;
-        }
-
-        public bool InterpretCommand(string Command)
-        {
-            string[] Arguments = ParseCommand(Command);
-            if (Arguments.Length == 0)
-                return false;
-
-            bool found = false;
-            for(int i = 0; i < Commands.Count; i++)
-                if (Commands[i].Equals(Arguments[0].ToLower()))
+                if (command[i] == ' ' && !inquote)
                 {
-                    found = true;
-                    Methods[i].Invoke(Arguments); // TODO: Make asynchronus?
+                    if (current != "")
+                    {
+                        args.Add(current);
+                        current = "";
+                    }
                 }
-
-            return found;
-        }
-
-        private string[] ParseCommand(string command)
-        {
-            // Do not split if inside "s
-            return command.Split(new char[] {' '}, StringSplitOptions.RemoveEmptyEntries);
+                else if (command[i] == '"')
+                {
+                    if (i - 1 >= 0 && command[i - 1] != '\\')
+                    {
+                        inquote = !inquote;
+                    }
+                    else if (i-1>=0)
+                    {
+                        command += '"';
+                    }
+                }
+                else
+                {
+                    if ((i + 1) < command.Length && command[i + 1] != '"')
+                        current += command[i];
+                    else if ((i + 1) == command.Length)
+                        current += command[i];
+                }
+                i++;
+            }
+            if (command != "")
+            {
+                args.Add(current);
+                current = "";
+            }
+            if (inquote)
+            {
+                Core.Output("Syntax error, uneven number of quotes");
+                return new string[] { };
+            }
+            return args.ToArray();
         }
     }
 }

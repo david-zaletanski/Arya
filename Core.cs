@@ -13,20 +13,73 @@ namespace Arya
 {
     public class Core
     {
-        public static Settings _Settings;
-        public static frmCLI _CLIForm;
-        public static TaskScheduler _Scheduler;
-        public static ModuleManager _ModuleManager;
-        public static CommandInterpreter _Interpreter;
+        public static Settings Settings;
+        public static frmCLI Interface;
+        public static TaskScheduler Scheduler;
 
-        private static LowLevelKeyboardHook _LLKeyboardHook;
-        private static StringBuilder _ExceptionLog;
+        private static LowLevelKeyboardHook llKeyboardHook;
+        private static StringBuilder exceptionLog;
 
         #region Command Processing
 
         public static void RunCommand(string command)
         {
-            _Interpreter.InterpretCommand(command);
+            string[] args = CommandInterpreter.ParseCommand(command);
+            if (args.Length > 0)
+            {
+                switch (args[0].ToLower())
+                {
+                    case "exit":
+                        Application.Exit();
+                        break;
+                    case "mmrl":
+                        ModuleManager.UnloadModules();
+                        ModuleManager.LoadModules(Settings.ModulePath, false);
+                        break;
+                    case "settings":
+                        string[] setargs = new string[args.Length - 1];
+                        Array.Copy(args, 1, setargs, 0, setargs.Length);
+                        Settings.Execute(setargs);
+                        break;
+                    case "task":
+                        // Will create a task on a separate thread to run the input following "task"
+                        // as a module command.
+                        string[] modargs = new string[args.Length - 1];
+                        Array.Copy(args, 1, modargs, 0, modargs.Length);
+                        Scheduler.AddTask(modargs);
+                        break;
+                    default:
+                        // Default command line action is to interpret the input as a module command
+                        // and execute the module on the same thread. Modules must already be loaded to be received.
+                        // Will execute all modules registered with that command in the order of loading.
+                        if (args.Length > 0)
+                        {
+                            string cmd = args[0];
+                            // See if the second argument is a module command.
+                            if (ModuleManager.CommandRegistry.ContainsKey(cmd))
+                            {
+                                IModule mod = ModuleManager.GetExistingModule(ModuleManager.CommandRegistry[cmd]);
+                                mod.OnLoad();
+                                if (args.Length > 1)
+                                {
+                                    string[] extraargs = new string[args.Length - 1];
+                                    Array.Copy(args, 1, extraargs, 0, extraargs.Length);
+                                    mod.Execute(extraargs);
+                                }
+                                else
+                                {
+                                    mod.Execute(new string[] { });
+                                }
+                                mod.OnExit();
+                            }
+                            else
+                            {
+                                Core.Output("Command not recognized. No module loaded with registered command '" + cmd + "'.");
+                            }
+                        }
+                        break;
+                }
+            }
         }
 
         #endregion
@@ -36,10 +89,10 @@ namespace Arya
         private static StringBuilder PreLoadOutput;
         public static void Output(string txt)
         {
-            if (_CLIForm == null)
+            if (Interface == null)
                 PreLoadOutput.AppendLine(txt);
             else
-                _CLIForm.Output(txt);
+                Interface.Output(txt);
         }
 
         #endregion
@@ -54,54 +107,66 @@ namespace Arya
         }
         public static string GetExceptionLog()
         {
-            return _ExceptionLog.ToString();
+            return exceptionLog.ToString();
         }
         private static void LogException(Exception ex)
         {
-            string ExtLog = "Exception ("+DateTime.Now.ToString()+")\n"+ex.Message + "\n" + ex.Source + "\n" + ex.StackTrace;
-            _ExceptionLog.AppendLine(ExtLog);
+            string ExtLog = "Exception (" + DateTime.Now.ToString() + ")\n" + ex.Message + "\n" + ex.Source + "\n" + ex.StackTrace;
+            exceptionLog.AppendLine(ExtLog);
         }
 
         #endregion
 
-        #region Events
+        #region Application Events
 
         public static void OnApplicationLaunch(string StartupPath)
         {
             // Initialize this classes components.
             PreLoadOutput = new StringBuilder();
             _PressedKeys = new List<Keys>();
-            _ExceptionLog = new StringBuilder();
-            _LLKeyboardHook = new LowLevelKeyboardHook();
-            // Initialize other components.
-            _Settings = new Settings(StartupPath);
-            _Settings.LoadSettings(StartupPath + "\\Settings.xml");
-            _CLIForm = new frmCLI();
+            exceptionLog = new StringBuilder();
+            llKeyboardHook = new LowLevelKeyboardHook();
+
+            // Initialize other components. Note: Some classes are important to load before main form is loaded.
+            Settings = new Settings(StartupPath);
+            Settings.LoadSettings(StartupPath + "\\Settings.xml");
+
+            Interface = new frmCLI();
         }
 
         public static void OnMainFormLoad()
         {
             // Give a hello message.
-            if(PreLoadOutput.Length>0)
+            if (PreLoadOutput.Length > 0)
                 Output(PreLoadOutput.ToString());
             Output("Arya online.");
-            _Interpreter = new CommandInterpreter();
-            _Settings.RegisterCommands(_Interpreter);
-            _ModuleManager = new ModuleManager(_Settings.ModulePath);
-            _ModuleManager.RegisterCommands(_Interpreter);
-            _Scheduler = new TaskScheduler(_Settings.SchedulerInterval);
-            _Scheduler.RegisterCommands(_Interpreter);
+
+            // Load modules
+            ModuleManager.LoadModules(Settings.ModulePath, false);
+
+            // Prepare task scheduler.
+            Scheduler = new TaskScheduler();
+            Scheduler.Start(1000);
 
             // Don't want to handle keyboard input until everything else is intialized.
-            _LLKeyboardHook.OnKeyDown += new LowLevelKeyboardHook.KeyPressEvent(_LLKeyboardHook_OnKeyDown);
-            _LLKeyboardHook.OnKeyUp += new LowLevelKeyboardHook.KeyPressEvent(_LLKeyboardHook_OnKeyUp);
+            llKeyboardHook.OnKeyDown += new LowLevelKeyboardHook.KeyPressEvent(_LLKeyboardHook_OnKeyDown);
+            llKeyboardHook.OnKeyUp += new LowLevelKeyboardHook.KeyPressEvent(_LLKeyboardHook_OnKeyUp);
         }
 
         public static void OnApplicationExit()
         {
-            _Settings.SaveSettings(_Settings.StartupPath + "\\Settings.xml");
-            // Break all connections, save and exit.
-            _CLIForm.OnExit();
+            // Stop all threads.
+            Scheduler.Stop();
+            Scheduler.StopTasks(true);
+
+            // Save all settings.
+            Settings.SaveSettings(Settings.StartupPath + "\\Settings.xml");
+
+            // Unload modules.
+            ModuleManager.UnloadModules();
+
+            // Prepare the interface for exit.
+            Interface.OnExit();
         }
 
         #endregion
@@ -132,10 +197,10 @@ namespace Arya
                 && _PressedKeys.Contains(Keys.Alt)
                 && _PressedKeys.Contains(Keys.Control))
             {
-                if (!Core._CLIForm.Visible)
-                    Core._CLIForm.Show();
+                if (!Core.Interface.Visible)
+                    Core.Interface.Show();
                 else
-                    Core._CLIForm.Hide();
+                    Core.Interface.Hide();
             }
         }
 
