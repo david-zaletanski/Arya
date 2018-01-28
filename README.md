@@ -1,6 +1,9 @@
 # Arya
 
-**Rewritten 1/26/2018**
+> A framework for personal assistance and automation through the loading of modular code.
+
+**Note:** I added (updated?) this README 1/26/2018 after going through some old projects. This is an unfinished project, and I've just added a high level description.
+
 This was a C# project I had started in 2013 based on some previous experience I had writing automation frameworks. The intention was to make a modular, multipurpose personal assistant tool for myself, to automate common tasks. 
 
 Arya was intended to be the core framework to run on the machine, which provided logging, command line interface, I/O, and more. It would manage a number of modules. Modules were separate C# files compiled in to .DLLs that were intended to add various functionality as I needed it. The idea was that over time I would keep building on top of it as my knowledge progressed until I had a whole host of useful tools to make my life/job easier.
